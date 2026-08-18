@@ -48,17 +48,6 @@ type RiskDecision struct {
 	CreatedAt       time.Time
 }
 
-func (e DriftIncident) SnapshotResolution(decision DriftIncidentStatus) (SnapshotState, bool) {
-	switch decision {
-	case DriftIncidentCleared:
-		return SnapshotMaterialized, true
-	case DriftIncidentRejected:
-		return SnapshotRejected, true
-	default:
-		return "", false
-	}
-}
-
 func (s DriftIncidentStatus) IsResolved() bool {
 	return s == DriftIncidentCleared || s == DriftIncidentRejected
 }

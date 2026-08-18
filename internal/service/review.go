@@ -74,18 +74,21 @@ func (s *ReviewService) Decide(ctx context.Context, input DecideInput) (domain.D
 		}
 		now := s.clock.Now()
 		for _, batch := range items {
-			if batch.State != domain.SnapshotQuarantined {
-				continue
-			}
-			next, ok := drift_incident.SnapshotResolution(input.Decision)
-			if !ok {
-				return fmt.Errorf("unsupported review decision: %w", domain.ErrValidation)
-			}
-			batch.State = next
-			if next == domain.SnapshotRejected {
-				batch.QuarantineNote = strings.TrimSpace(input.Rationale)
-			} else {
+			switch input.Decision {
+			case domain.DriftIncidentCleared:
+				if batch.State != domain.SnapshotQuarantined {
+					continue
+				}
+				batch.State = domain.SnapshotApproved
 				batch.QuarantineNote = ""
+			case domain.DriftIncidentRejected:
+				if batch.State != domain.SnapshotQuarantined {
+					continue
+				}
+				batch.State = domain.SnapshotRejected
+				batch.QuarantineNote = strings.TrimSpace(input.Rationale)
+			default:
+				return fmt.Errorf("unsupported review decision: %w", domain.ErrValidation)
 			}
 			batch.UpdatedAt = now
 			if err := tx.UpdateDatasetSnapshot(ctx, batch, batch.Version); err != nil {
